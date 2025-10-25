@@ -1,68 +1,139 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SentimentChart } from "@/components/sentiment-chart"
-import { Download, Search } from "lucide-react"
-import { WebSocketClient } from "@/components/websocket-client"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SentimentChart } from "@/components/sentiment-chart";
+import { Download, Search } from "lucide-react";
+import { WebSocketProvider } from "@/components/WebSocketProvider";
 
 export default function SentimentPage() {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [redditSentiment, setRedditSentiment] = useState<{
+    label: string;
+    score: number;
+  } | null>(null);
+  const [redditLoading, setRedditLoading] = useState(true);
+
+  const fetchRedditSentiment = async (coin = "BTC", timeframe = "7d") => {
+    setRedditLoading(true);
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/sentiment-timeseries?coin=${coin}&timeframe=${timeframe}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch Reddit sentiment");
+      const data = await res.json();
+
+      if (data.series && data.series.length > 0) {
+        // Get the latest record
+        const latest = data.series[data.series.length - 1];
+
+        // Find highest sentiment among positive, neutral, negative
+        const highest = Object.entries(latest)
+          .filter(([key]) => ["positive", "neutral", "negative"].includes(key))
+          .sort((a, b) => b[1] - a[1])[0];
+
+        setRedditSentiment({ label: highest[0], score: highest[1] });
+      } else {
+        setRedditSentiment({ label: "N/A", score: 0 });
+      }
+    } catch (err) {
+      console.error(err);
+      setRedditSentiment({ label: "N/A", score: 0 });
+    } finally {
+      setRedditLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRedditSentiment();
+  }, []);
 
   return (
-    <WebSocketClient serverUrl={process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000"}>
+    <WebSocketProvider
+      serverUrl={process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8000"}
+    >
       <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Sentiment Analysis</h1>
           <Button variant="outline" size="sm" className="h-8 gap-1">
             <Download className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export Data</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Export Data
+            </span>
           </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Reddit Sentiment</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Reddit Sentiment
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Positive</div>
-              <p className="text-xs text-muted-foreground">+15% from last week</p>
+              <p className="text-xs text-muted-foreground">
+                +15% from last week
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Twitter Sentiment</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Twitter Sentiment
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Neutral</div>
-              <p className="text-xs text-muted-foreground">-2% from last week</p>
+              <p className="text-xs text-muted-foreground">
+                -2% from last week
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">News Sentiment</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                News Sentiment
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Negative</div>
-              <p className="text-xs text-muted-foreground">-8% from last week</p>
+              <p className="text-xs text-muted-foreground">
+                -8% from last week
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overall Sentiment</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Overall Sentiment
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Neutral</div>
-              <p className="text-xs text-muted-foreground">+5% from last week</p>
+              <p className="text-xs text-muted-foreground">
+                +5% from last week
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -72,7 +143,9 @@ export default function SentimentPage() {
             <Card className="flex-1">
               <CardHeader>
                 <CardTitle>Sentiment Analysis</CardTitle>
-                <CardDescription>Analyze sentiment across different sources</CardDescription>
+                <CardDescription>
+                  Analyze sentiment across different sources
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="all" className="space-y-4">
@@ -113,11 +186,15 @@ export default function SentimentPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Sentiment Heatmap</CardTitle>
-                <CardDescription>Visualize sentiment across different cryptocurrencies</CardDescription>
+                <CardDescription>
+                  Visualize sentiment across different cryptocurrencies
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">Sentiment heatmap visualization will appear here</p>
+                  <p className="text-muted-foreground">
+                    Sentiment heatmap visualization will appear here
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -127,7 +204,9 @@ export default function SentimentPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Search</CardTitle>
-                <CardDescription>Search for specific cryptocurrencies</CardDescription>
+                <CardDescription>
+                  Search for specific cryptocurrencies
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -216,7 +295,6 @@ export default function SentimentPage() {
           </div>
         </div>
       </div>
-    </WebSocketClient>
-  )
+    </WebSocketProvider>
+  );
 }
-

@@ -1,14 +1,39 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowDown, ArrowUp, Download, ExternalLink, Search } from "lucide-react"
-import { WebSocketClient } from "@/components/websocket-client"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  ExternalLink,
+  Search,
+} from "lucide-react";
+import { WebSocketClient } from "@/components/WebSocketProvider";
 
 // Mock data for transactions
 const allTransactions = [
@@ -112,81 +137,106 @@ const allTransactions = [
     time: "7 hours ago",
     direction: "incoming",
   },
-]
+];
 
 export default function TransactionsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [page, setPage] = useState(1)
-  const [filter, setFilter] = useState("all")
-  const pageSize = 5
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState("all");
+  const pageSize = 5;
 
   // Filter transactions based on search query and filter
   const filteredTransactions = allTransactions.filter((tx) => {
     const matchesSearch =
       tx.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tx.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.to.toLowerCase().includes(searchQuery.toLowerCase())
+      tx.to.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (filter === "all") return matchesSearch
-    if (filter === "incoming") return matchesSearch && tx.direction === "incoming"
-    if (filter === "outgoing") return matchesSearch && tx.direction === "outgoing"
+    if (filter === "all") return matchesSearch;
+    if (filter === "incoming")
+      return matchesSearch && tx.direction === "incoming";
+    if (filter === "outgoing")
+      return matchesSearch && tx.direction === "outgoing";
 
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
-  const totalPages = Math.ceil(filteredTransactions.length / pageSize)
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize);
 
-  const paginatedTransactions = filteredTransactions.slice((page - 1) * pageSize, page * pageSize)
+  const paginatedTransactions = filteredTransactions.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   return (
-    <WebSocketClient serverUrl={process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000"}>
+    <WebSocketClient
+      serverUrl={process.env.NEXT_PUBLIC_WS_URL || "http://localhost:5000"}
+    >
       <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Transaction Tracking</h1>
           <Button variant="outline" size="sm" className="h-8 gap-1">
             <Download className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">Export Data</span>
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Export Data
+            </span>
           </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Transactions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">1,245</div>
-              <p className="text-xs text-muted-foreground">+123 from yesterday</p>
+              <p className="text-xs text-muted-foreground">
+                +123 from yesterday
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Bitcoin Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Bitcoin Transactions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">567</div>
-              <p className="text-xs text-muted-foreground">+45 from yesterday</p>
+              <p className="text-xs text-muted-foreground">
+                +45 from yesterday
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Ethereum Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Ethereum Transactions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">432</div>
-              <p className="text-xs text-muted-foreground">+38 from yesterday</p>
+              <p className="text-xs text-muted-foreground">
+                +38 from yesterday
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Other Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Other Transactions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">246</div>
-              <p className="text-xs text-muted-foreground">+40 from yesterday</p>
+              <p className="text-xs text-muted-foreground">
+                +40 from yesterday
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -196,7 +246,9 @@ export default function TransactionsPage() {
             <Card className="flex-1">
               <CardHeader>
                 <CardTitle>Transaction Tracking</CardTitle>
-                <CardDescription>Monitor large cryptocurrency transactions</CardDescription>
+                <CardDescription>
+                  Monitor large cryptocurrency transactions
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -231,9 +283,15 @@ export default function TransactionsPage() {
                       <TableRow>
                         <TableHead>Type</TableHead>
                         <TableHead>Amount</TableHead>
-                        <TableHead className="hidden md:table-cell">Value</TableHead>
-                        <TableHead className="hidden md:table-cell">From</TableHead>
-                        <TableHead className="hidden md:table-cell">To</TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          Value
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          From
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">
+                          To
+                        </TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -253,14 +311,22 @@ export default function TransactionsPage() {
                               </div>
                             </TableCell>
                             <TableCell>{tx.amount}</TableCell>
-                            <TableCell className="hidden md:table-cell">{tx.value}</TableCell>
-                            <TableCell className="hidden md:table-cell">{tx.from}</TableCell>
-                            <TableCell className="hidden md:table-cell">{tx.to}</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {tx.value}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {tx.from}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {tx.to}
+                            </TableCell>
                             <TableCell>{tx.time}</TableCell>
                             <TableCell className="text-right">
                               <Button variant="ghost" size="icon">
                                 <ExternalLink className="h-4 w-4" />
-                                <span className="sr-only">View transaction</span>
+                                <span className="sr-only">
+                                  View transaction
+                                </span>
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -292,7 +358,9 @@ export default function TransactionsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(page < totalPages ? page + 1 : totalPages)}
+                      onClick={() =>
+                        setPage(page < totalPages ? page + 1 : totalPages)
+                      }
                       disabled={page === totalPages}
                     >
                       Next
@@ -305,14 +373,19 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Wallet Lookup</CardTitle>
-                <CardDescription>Search for a specific wallet address</CardDescription>
+                <CardDescription>
+                  Search for a specific wallet address
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <div className="grid flex-1 gap-2">
                       <Label htmlFor="wallet-search">Wallet Address</Label>
-                      <Input id="wallet-search" placeholder="Enter wallet address..." />
+                      <Input
+                        id="wallet-search"
+                        placeholder="Enter wallet address..."
+                      />
                     </div>
                     <div className="mt-8">
                       <Button type="submit">Search</Button>
@@ -320,7 +393,9 @@ export default function TransactionsPage() {
                   </div>
 
                   <div className="rounded-md border p-4 text-center">
-                    <p className="text-muted-foreground">Enter a wallet address to see its transaction history</p>
+                    <p className="text-muted-foreground">
+                      Enter a wallet address to see its transaction history
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -331,7 +406,9 @@ export default function TransactionsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Transaction Alerts</CardTitle>
-                <CardDescription>Get notified about large transactions</CardDescription>
+                <CardDescription>
+                  Get notified about large transactions
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -342,7 +419,9 @@ export default function TransactionsPage() {
                         <SelectValue placeholder="Select cryptocurrency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Cryptocurrencies</SelectItem>
+                        <SelectItem value="all">
+                          All Cryptocurrencies
+                        </SelectItem>
                         <SelectItem value="btc">Bitcoin</SelectItem>
                         <SelectItem value="eth">Ethereum</SelectItem>
                         <SelectItem value="sol">Solana</SelectItem>
@@ -418,7 +497,9 @@ export default function TransactionsPage() {
                       <ArrowUp className="h-4 w-4 text-red-500" />
                       <span className="font-medium">USDT</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">5,000,000 USDT transferred 45 minutes ago</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      5,000,000 USDT transferred 45 minutes ago
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -427,6 +508,5 @@ export default function TransactionsPage() {
         </div>
       </div>
     </WebSocketClient>
-  )
+  );
 }
-

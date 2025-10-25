@@ -8,106 +8,74 @@ import { Download, TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { SentimentChart } from "@/components/sentiment-chart"
 import { RecentTransactions } from "@/components/recent-transactions"
 import { RecentSentimentFeed } from "@/components/recent-sentiment-feed"
-import { WebSocketClient } from "@/components/websocket-client"
+import { WebSocketClient } from "@/components/WebSocketProvider"
 
 export default function DashboardPage() {
   const [sentimentOverview, setSentimentOverview] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [redditSentiment, setRedditSentiment] = useState<{ label: string; score: number } | null>(null)
+  const [redditLoading, setRedditLoading] = useState(true)
 
-  // Fetch sentiment overview
+  const fetchRedditSentiment = async (coin = "BTC", timeframe = "7d") => {
+  setRedditLoading(true)
+  try {
+    const res = await fetch(`http://localhost:8000/api/sentiment-timeseries?coin=${coin}&timeframe=${timeframe}`)
+    if (!res.ok) throw new Error("Failed to fetch Reddit sentiment")
+    const data = await res.json()
+
+    if (data.series && data.series.length > 0) {
+      // Get the latest record
+      const latest = data.series[data.series.length - 1]
+
+      // Find highest sentiment among positive, neutral, negative
+      const highest = Object.entries(latest)
+        .filter(([key]) => ["positive", "neutral", "negative"].includes(key))
+        .sort((a, b) => b[1] - a[1])[0]
+
+      setRedditSentiment({ label: highest[0], score: highest[1] })
+    } else {
+      setRedditSentiment({ label: "N/A", score: 0 })
+    }
+  } catch (err) {
+    console.error(err)
+    setRedditSentiment({ label: "N/A", score: 0 })
+  } finally {
+    setRedditLoading(false)
+  }
+}
+
+useEffect(() => {
+  fetchRedditSentiment()
+}, [])
+
+
+
   useEffect(() => {
-    const fetchSentimentOverview = async () => {
-      try {
-        // Mock data to use when API is unavailable
-        const mockOverview = {
-          overall: {
-            label: "positive",
-            score: 65.8,
-            change: 7.2,
-          },
-          sources: {
-            reddit: {
-              label: "positive",
-              score: 72.5,
-            },
-            forexfactory: {
-              label: "neutral",
-              score: 58.3,
-            },
-            news: {
-              label: "positive",
-              score: 63.7,
-            },
-            twitter: {
-              label: "positive",
-              score: 68.9,
-            },
-          },
-          cryptocurrencies: {
-            bitcoin: {
-              label: "positive",
-              score: 75.2,
-              change: 8.5,
-            },
-            ethereum: {
-              label: "positive",
-              score: 68.4,
-              change: 5.3,
-            },
-          },
-        }
-
-        try {
-          const response = await fetch("/api/sentiment/overview", {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          })
-
-          if (!response.ok) {
-            throw new Error(`Error fetching sentiment overview: ${response.statusText}`)
-          }
-
-          const data = await response.json()
-          setSentimentOverview(data)
-        } catch (apiError) {
-          console.warn("API fetch failed, using mock data:", apiError)
-          // Use mock data if API fails
-          setSentimentOverview(mockOverview)
-        }
-      } catch (err) {
-        console.error("Error in sentiment overview:", err)
-        // Set default mock data even if there's an error
-        setSentimentOverview({
-          overall: { label: "neutral", score: 50, change: 0 },
-          sources: {
-            reddit: { label: "neutral", score: 50 },
-            forexfactory: { label: "neutral", score: 50 },
-            news: { label: "neutral", score: 50 },
-          },
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    // Mock data only
+    const mockOverview = {
+      overall: { label: "positive", score: 65.8, change: 7.2 },
+      sources: {
+        reddit: { label: "positive", score: 72.5 },
+        forexfactory: { label: "neutral", score: 58.3 },
+        news: { label: "positive", score: 63.7 },
+      },
+      cryptocurrencies: {
+        bitcoin: { label: "positive", score: 75.2, change: 8.5 },
+        ethereum: { label: "positive", score: 68.4, change: 5.3 },
+      },
     }
 
-    fetchSentimentOverview()
-
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchSentimentOverview, 5 * 60 * 1000)
-
-    return () => clearInterval(interval)
+    // Simulate loading
+    setTimeout(() => {
+      setSentimentOverview(mockOverview)
+      setIsLoading(false)
+    }, 500)
   }, [])
 
-  // Helper function for sentiment cards
   const getSentimentIcon = (label: string, change: number) => {
-    if (label === "positive" || change > 5) {
-      return <TrendingUp className="h-4 w-4 text-green-500" />
-    } else if (label === "negative" || change < -5) {
-      return <TrendingDown className="h-4 w-4 text-red-500" />
-    } else {
-      return <Minus className="h-4 w-4 text-yellow-500" />
-    }
+    if (label === "positive" || change > 5) return <TrendingUp className="h-4 w-4 text-green-500" />
+    if (label === "negative" || change < -5) return <TrendingDown className="h-4 w-4 text-red-500" />
+    return <Minus className="h-4 w-4 text-yellow-500" />
   }
 
   return (
@@ -129,106 +97,99 @@ export default function DashboardPage() {
             <TabsTrigger value="custom">Custom</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Overall Sentiment</CardTitle>
-                  {!isLoading &&
-                    sentimentOverview &&
-                    getSentimentIcon(sentimentOverview.overall.label, sentimentOverview.overall.change)}
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="animate-pulse h-10 bg-muted rounded"></div>
-                  ) : sentimentOverview ? (
-                    <>
-                      <div className="text-2xl font-bold capitalize">{sentimentOverview.overall.label}</div>
-                      <p className="text-xs text-muted-foreground">
-                        {sentimentOverview.overall.change > 0 ? "+" : ""}
-                        {sentimentOverview.overall.change.toFixed(2)}% from last period
-                      </p>
-                    </>
-                  ) : (
-                    <div className="text-2xl font-bold">No Data</div>
-                  )}
-                </CardContent>
-              </Card>
+          {/* Overview Tab */}
+<TabsContent value="overview" className="space-y-4">
+  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    {/* Overall Sentiment */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Overall Sentiment</CardTitle>
+        {!isLoading && sentimentOverview && getSentimentIcon(sentimentOverview.overall.label, sentimentOverview.overall.change)}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="animate-pulse h-10 bg-muted rounded"></div>
+        ) : sentimentOverview ? (
+          <>
+            <div className="text-2xl font-bold capitalize">{sentimentOverview.overall.label}</div>
+            <p className="text-xs text-muted-foreground">
+              {`${sentimentOverview.overall.change > 0 ? "+" : ""}${sentimentOverview.overall.change.toFixed(2)}% from last period`}
+            </p>
+          </>
+        ) : (
+          <div className="text-2xl font-bold">No Data</div>
+        )}
+      </CardContent>
+    </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Reddit Sentiment</CardTitle>
-                  {!isLoading &&
-                    sentimentOverview &&
-                    sentimentOverview.sources.reddit.score &&
-                    getSentimentIcon(sentimentOverview.sources.reddit.label, 0)}
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="animate-pulse h-10 bg-muted rounded"></div>
-                  ) : sentimentOverview && sentimentOverview.sources.reddit.score !== null ? (
-                    <>
-                      <div className="text-2xl font-bold capitalize">{sentimentOverview.sources.reddit.label}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {sentimentOverview.sources.reddit.score.toFixed(1)}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="text-2xl font-bold">No Data</div>
-                  )}
-                </CardContent>
-              </Card>
+    {/* Reddit Sentiment */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Reddit Sentiment</CardTitle>
+        {!redditLoading && redditSentiment && getSentimentIcon(redditSentiment.label, 0)}
+      </CardHeader>
+      <CardContent>
+        {redditLoading ? (
+          <div className="animate-pulse h-10 bg-muted rounded"></div>
+        ) : redditSentiment ? (
+          <>
+            <div className="text-2xl font-bold capitalize">{redditSentiment.label}</div>
+            <p className="text-xs text-muted-foreground">
+              Score: {redditSentiment.score.toFixed(1)}%
+            </p>
+          </>
+        ) : (
+          <div className="text-2xl font-bold">No Data</div>
+        )}
+      </CardContent>
+    </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">ForexFactory Sentiment</CardTitle>
-                  {!isLoading &&
-                    sentimentOverview &&
-                    sentimentOverview.sources.forexfactory.score &&
-                    getSentimentIcon(sentimentOverview.sources.forexfactory.label, 0)}
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="animate-pulse h-10 bg-muted rounded"></div>
-                  ) : sentimentOverview && sentimentOverview.sources.forexfactory.score !== null ? (
-                    <>
-                      <div className="text-2xl font-bold capitalize">
-                        {sentimentOverview.sources.forexfactory.label}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {sentimentOverview.sources.forexfactory.score.toFixed(1)}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="text-2xl font-bold">No Data</div>
-                  )}
-                </CardContent>
-              </Card>
+    {/* ForexFactory Sentiment (still mock) */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Forexfactory Sentiment</CardTitle>
+        {!isLoading && sentimentOverview && getSentimentIcon(sentimentOverview.sources.forexfactory.label, 0)}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="animate-pulse h-10 bg-muted rounded"></div>
+        ) : sentimentOverview ? (
+          <>
+            <div className="text-2xl font-bold capitalize">{sentimentOverview.sources.forexfactory.label}</div>
+            <p className="text-xs text-muted-foreground">
+              Score: {sentimentOverview.sources.forexfactory.score.toFixed(1)}
+            </p>
+          </>
+        ) : (
+          <div className="text-2xl font-bold">No Data</div>
+        )}
+      </CardContent>
+    </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">News Sentiment</CardTitle>
-                  {!isLoading &&
-                    sentimentOverview &&
-                    sentimentOverview.sources.news.score &&
-                    getSentimentIcon(sentimentOverview.sources.news.label, 0)}
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="animate-pulse h-10 bg-muted rounded"></div>
-                  ) : sentimentOverview && sentimentOverview.sources.news.score !== null ? (
-                    <>
-                      <div className="text-2xl font-bold capitalize">{sentimentOverview.sources.news.label}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {sentimentOverview.sources.news.score.toFixed(1)}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="text-2xl font-bold">No Data</div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+    {/* News Sentiment (still mock) */}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">News Sentiment</CardTitle>
+        {!isLoading && sentimentOverview && getSentimentIcon(sentimentOverview.sources.news.label, 0)}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="animate-pulse h-10 bg-muted rounded"></div>
+        ) : sentimentOverview ? (
+          <>
+            <div className="text-2xl font-bold capitalize">{sentimentOverview.sources.news.label}</div>
+            <p className="text-xs text-muted-foreground">
+              Score: {sentimentOverview.sources.news.score.toFixed(1)}
+            </p>
+          </>
+        ) : (
+          <div className="text-2xl font-bold">No Data</div>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+</TabsContent>
+
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <Card className="lg:col-span-4">
@@ -263,6 +224,7 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
+          {/* Bitcoin Tab */}
           <TabsContent value="bitcoin" className="space-y-4">
             <Card>
               <CardHeader>
@@ -285,6 +247,7 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
+          {/* Ethereum Tab */}
           <TabsContent value="ethereum" className="space-y-4">
             <Card>
               <CardHeader>
@@ -307,6 +270,7 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
+          {/* Custom Tab */}
           <TabsContent value="custom" className="space-y-4">
             <Card>
               <CardHeader>
@@ -353,7 +317,6 @@ export default function DashboardPage() {
                   </div>
 
                   <SentimentChart cryptocurrency="Bitcoin" />
-
                   <RecentSentimentFeed cryptocurrency="Bitcoin" limit={5} />
                 </div>
               </CardContent>
@@ -364,4 +327,3 @@ export default function DashboardPage() {
     </WebSocketClient>
   )
 }
-
